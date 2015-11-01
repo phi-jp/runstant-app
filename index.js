@@ -1,9 +1,13 @@
 'use strict';
 
+// 共通モジュール
+var fs = require('fs');
+
 // アプリケーションをコントロールするモジュール
 var app = require('app');
 // ウィンドウを作成するモジュール
 var BrowserWindow = require('browser-window');
+var dialog = require('dialog');
 var Menu = require('menu');
 // 起動 URL
 // var currentURL = 'file://' + __dirname + '/index.html';
@@ -11,6 +15,20 @@ var currentURL = 'http://lite.runstant.com';
 
 // クラッシュレポート
 require('crash-reporter').start();
+
+var openDialog = function() {
+  var win = BrowserWindow.getFocusedWindow();
+  dialog.showOpenDialog(
+    win,
+    {
+      properties: ['openFile'],
+    },
+    function(filename) {
+      fs.readFile(filename[0], function(error, text) {
+        console.log(text.toString());
+      });
+    });
+};
 
 // setup menu
 var menu = Menu.buildFromTemplate([
@@ -30,6 +48,12 @@ var menu = Menu.buildFromTemplate([
     label: 'File',
     submenu: [
       { label: 'New File' },
+      {
+        label: 'Open',
+        click: function() {
+          openDialog();
+        },
+      },
       { type: 'separator' },
       {
         label: "Save",
@@ -98,17 +122,11 @@ app.on('ready', function() {
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
-  // mainWindow.toggleDevTools();
+  mainWindow.toggleDevTools();
 
   // ウィンドウが閉じられたらアプリも終了
   mainWindow.on('closed', function() {
     mainWindow = null;
-  });
-
-  app.on("window-all-closed", function() {
-    if (process.platform != "darwin") {
-      app.quit();
-    }
   });
 
   Menu.setApplicationMenu(menu);
