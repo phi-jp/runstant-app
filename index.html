@@ -1,0 +1,214 @@
+<!doctype html>
+
+<html>  
+  <head>
+    <meta charset='utf-8' />
+    <title>mado | Markdown Editor</title>
+
+    <!-- ace -->
+    <script src='http://cdn.jsdelivr.net/ace/1.2.0/min/ace.js'></script>
+    <script src='http://cdn.jsdelivr.net/ace/1.2.0/min/ext-language_tools.js'></script>
+    <script src='http://cdn.jsdelivr.net/ace/1.2.0/min/ext-emmet.js'></script>
+
+    <!-- marked -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.js'></script>
+    <!-- jframe -->
+    <script src='http://cdn.rawgit.com/phi-jp/jframe/0.0.2/jframe.js'></script>
+  </head>
+  <body>
+    <div id='runstant'>
+      <iframe src='http://runstant.com'></iframe>
+      <!-- <iframe src='http://localhost:3000'></iframe> -->
+    </div>
+  </body>
+</html>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+#runstant {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100vw;
+  height: 100vh;
+}
+#runstant iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+</style>
+
+<script>
+var fs      = require('fs');
+var remote  = require('remote');
+var Menu = remote.require('menu');
+var Dialog  = remote.require('dialog');
+var mainWindow = remote.getCurrentWindow();
+
+var file = {
+  filename: null,
+  data: null,
+};
+
+var open = function(filename, callback) {
+  if (filename) {
+    fs.readFile(filename, 'utf8', function(error, data) {
+      if (error) { throw error; }
+      file.filename = filename;
+      file.data = data;
+
+      callback && callback();
+    });
+  }
+};
+var openFileDialog = function() {
+  Dialog.showOpenDialog(function(filenames) {
+    if (!filenames) return ;
+    open(filenames[0]);
+  });
+};
+var save = function(filename, data) {
+  fs.writeFile(filename, data, function(error, data) {
+    if (error) { throw error; }
+    console.log('saved', filename);
+  });
+};
+var saveFileDialog = function() {
+  if (file.filename) {
+    save(file.filename, file.data);
+  }
+  else {
+    Dialog.showSaveDialog(function(filename) {
+      if (filename) {
+        file.filename = filename;
+        save(file.filename, file.data);
+      }
+    });
+  }
+};
+
+
+var menu = Menu.buildFromTemplate([
+  {
+    label: 'Runstant',
+    submenu: [
+      {
+        label: 'About',
+        click: function() {
+          mainWindow.loadUrl('http://lite.runstant.com/about');
+        }
+      },
+      { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }},
+    ]
+  },
+  {
+    label: 'File',
+    submenu: [
+      { label: 'New File' },
+      {
+        label: 'Open',
+        click: function() {
+          openDialog();
+        },
+      },
+      { type: 'separator' },
+      {
+        label: "Save",
+        accelerator: "CmdOrCtrl+S",
+        click: function() {
+          console.log('save');
+        }
+      },
+      {
+        label: 'Save As...',
+      },
+    ]
+  },
+  {
+    label: 'Edit',
+    submenu: [
+      { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
+      { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+      { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
+      { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" },
+      // {label: 'Copy', accelerator: 'Command+C', selector: 'copy'},
+      // {label: 'Paste', accelerator: 'Command+V', selector: 'paste'}
+    ]
+  },
+  {
+    label: 'View',
+    submenu: [
+      {
+        label: 'Reload',
+        accelerator: 'CmdOrCtrl+R',
+        click: function() { mainWindow.restart(); }
+      },
+      {
+        label: 'Toggle Full Screen',
+        accelerator: 'CmdOrCtrl+Ctrl+F',
+        click: function() {
+          mainWindow.setFullScreen(!mainWindow.isFullScreen());
+        }
+      },
+      {
+        label: 'Toggle Developer Tools',
+        accelerator: 'CmdOrCtrl+Alt+I',
+        click: function() {
+          mainWindow.toggleDevTools();
+        }
+      },
+    ],
+  }
+]);
+Menu.setApplicationMenu(menu);
+
+</script>
+
+<script>
+
+window.onload = function() {
+  var runstantFrame = document.querySelector('#runstant iframe')
+
+  runstantFrame.contentWindow.postMessage(JSON.stringify({
+    action: 'type',
+    data: 'app',
+  }), "*");
+
+  window.onmessage = function(e) {
+    var res = JSON.parse(e.data);
+    if (res.action === 'save') {
+      file.data = JSON.stringify(res.data);
+      saveFileDialog();
+    }
+    else if (res.action === 'load') {
+      file.filename = res.data.path;
+      localStorage.setItem('history', file.filename);
+    }
+  };
+
+  document.ondragover = document.ondrop = function(e) {
+    e.preventDefault(); // イベントの伝搬を止めて、アプリケーションのHTMLとファイルが差し替わらないようにする
+    return false;
+  };
+
+  // open from history
+  var filename = localStorage.getItem('history');
+  if (filename) {
+    open(filename, function() {
+      runstantFrame.contentWindow.postMessage(JSON.stringify({
+        action: 'set',
+        data: file.data,
+      }), "*");
+    });
+  }
+};
+
+var sync = function(v) {
+};
+
+</script>
