@@ -21,6 +21,7 @@
 
     <script src='scripts/util.js'></script>
     <script src='scripts/menu.js'></script>
+    <script src='scripts/recent.js'></script>
     <script src='scripts/main.js'></script>
   </head>
   <body>
@@ -38,9 +39,22 @@
 <script type='riot/tag' template='jade'>
   side
     ul
-      li(each='{histories}') hoge
+      li(each='{recent.logs}', onclick='{open}') {filename}
+
+    style.
+      side {
+        display: block;
+      }
+
+      side ul li {
+        margin: 1rem 0;
+        cursor: pointer;
+      }
 
     script.
+      this.open = function(e) {
+        open(e.item.filepath);
+      };
 
 </script>
 <script>

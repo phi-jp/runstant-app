@@ -11,26 +11,37 @@ window.onload = function() {
   window.onmessage = function(e) {
     var res = JSON.parse(e.data);
     if (res.action === 'save') {
-      file.data = JSON.stringify(res.data);
-      saveFileDialog();
+      var file = recent.current();
+      saveFileDialog(file.filepath, JSON.stringify(res.data));
     }
     else if (res.action === 'load') {
-      file.filename = res.data.path;
-      localStorage.setItem('history', file.filename);
+      recent.add(res.data.path);
+      riot.update();
     }
   };
 
-  // open from history
-  var filename = localStorage.getItem('history');
-  if (filename) {
-    open(filename, function() {
-      runstantFrame.contentWindow.postMessage(JSON.stringify({
-        action: 'set',
-        data: file.data,
-      }), "*");
-    });
-  }
+  window.onopenfile = function(e) {
+    recent.add(e.filename);
+    riot.update();
+
+    runstantFrame.contentWindow.postMessage(JSON.stringify({
+      action: 'set',
+      data: e.data,
+    }), "*");
+  };
+
+  window.onsavefile = function(e) {
+
+  };
+
+  // // open from history
+  // var filename = localStorage.getItem('history');
+  // if (filename) {
+  //   open(filename);
+  // }
 };
+
+
 
 var sync = function(v) {
 };

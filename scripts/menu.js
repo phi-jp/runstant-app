@@ -30,7 +30,7 @@ var menu = Menu.buildFromTemplate([
         label: "Save",
         accelerator: "CmdOrCtrl+S",
         click: function() {
-          console.log('save');
+          saveFileDialog();
         }
       },
       {
